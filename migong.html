@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh">
+	<head>
+		<meta charset="UTF-8">
+		<title>canvas + 走出迷宫</title>
+		<style>
+			#text{
+				font-size: 30px;
+				text-align: center;
+				margin-top: 30px;
+				color: navy;
+			}
+			#mc{
+				display: block;
+				margin: 30px auto;
+				box-shadow: 0 0 10px gray;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="text">
+			走出迷宫
+		</div>
+		<canvas id="mc" width="550" height="555">您的浏览器不支持canvas,请升级或者更换浏览器!!!</canvas>
+	</body>
+	
+	<script type="text/javascript">
+		var mc = document.getElementById('mc'); // 画布
+		var ctx = mc.getContext('2d'); // 画笔
+		// 矩形初始坐标
+		var currRectX = 342;
+		var currRectY = 20;
+		// 迷宫宽高
+		var mazeWidth = 550;
+		var mazeHeight = 555;
+		// 计时器
+		var timer;
+		
+		// 绘制 迷宫和矩形
+		function drawMazeAndRect(rectX,rectY){
+			// 清除画布
+			ctx.clearRect(0,0,mc.width,mc.height);
+			var mazeImg = new Image(); // 定义Image类
+			// 图片路径
+			mazeImg.src = 'img/download.gif';	
+			// 图片异步加载导致不能绘制,要将绘制过程放在mazeImg的onload事件中
+			mazeImg.onload = function(){
+				// 绘制迷宫地图
+				ctx.drawImage(mazeImg,0,0);
+				// 绘制矩形
+				drawRect(rectX,rectY,'rgb(0,0,255)');
+				
+				// 绘制终点圆形
+                ctx.beginPath();
+                ctx.arc(10, 115, 7, 0, 2 * Math.PI);
+                ctx.closePath();
+                ctx.fillStyle = 'rgb(0,255,0)';
+                ctx.fill();
+                
+                // 顶部提示文字
+                ctx.font = '14px Arial';
+                ctx.fillStyle = 'red';
+                ctx.textAlign = 'center';
+                ctx.fillText('点击 canvas 重置游戏',mc.width / 2,10);
+			}
+			
+		}
+//		drawMazeAndRect(342,20);
+		// 绘制可移动矩形
+		function drawRect(x,y,color){
+			// 清除矩形走过的路径
+//			ctx.clearRect(currRectX,currRectY,13,13);
+		    ctx.beginPath();  
+			ctx.fillStyle='rgb(255,255,255)';  
+		    ctx.fillRect(currRectX,currRectY,13,13);  
+		    ctx.closePath(); 
+		    // 矩形
+			currRectX = x;
+			currRectY = y;
+			ctx.beginPath();
+			ctx.fillStyle = color;
+			ctx.fillRect(x,y,13,13);
+			ctx.closePath();
+			ctx.fill();
+		}
+//		drawRect(currRectX,currRectY,'rgb(0,0,255)');
+		
+		// 移动矩形
+		function drawMoveRect(e){
+			var newX,newY,moveAllowed;
+			var e = event || window.event;
+			switch(e.keyCode) {
+                case 37:    // 方向键 left
+                case 65:    // A 键
+                    newX = currRectX - 3;
+                    newY = currRectY;
+                    console.log(1);
+                    break;
+                case 38:    // 方向键 up
+                case 87:    // W 键
+                    newX = currRectX;
+                    newY = currRectY - 3;
+                    console.log(newY);
+                    break;
+                case 39:    // 方向键 right
+                case 68:    // D 键
+                    newX = currRectX + 3;
+                    newY = currRectY;
+                    console.log(3);
+                    break;
+                case 40:    	// 方向键 down
+                case 83:    // S 键
+                    newX = currRectX;
+                    newY = currRectY + 3;
+                    console.log(newY);
+                    console.log(4);
+                    break;
+            }
+			
+			// 判断矩形能否可移动或者到达终点
+			moveAllowed = canMoveZ(newX,newY); // 能移动
+			if(moveAllowed == 1){ // 能移动
+				drawRect(newX,newY,'rgb(0,0,255)'); // 绘制新矩形
+				//更新可移动矩形坐标
+                currRectX = newX;
+                currRectY = newY;
+                console.log(newX,newY);
+			}else if(moveAllowed == 2){ // 终点
+				clearInterval(timer); // 清除倒计时器
+				ctx.clearRect(0,0,550,555); // 清除画布
+				// 绘制结束通关文字
+				ctx.font = '40px Arial';
+				ctx.fillStyle = 'orangered';
+				ctx.textAlign = 'center';
+				ctx.textBaseline = 'middle';
+				ctx.fillText('恭喜你走出迷宫!',mc.width / 2,mc.height / 2);
+				window.removeEventListener('keydown', drawMoveRect, true); // 移除键盘监听事件
+
+			}
+		}
+//		drawMoveRect();
+		
+		// 根据像素值判断矩形移动
+		function canMoveZ(ox,oy){
+			// 获取像素值
+			var imgData = ctx.getImageData(ox,oy,13,13);
+			var data = imgData.data;
+			var canMove = 1; // 1矩形能移动
+			
+			if(ox >= 0 && ox <= mazeWidth - 13 && oy >= 20 && oy <= mazeHeight - 13){
+				for(var i = 0;i < 4 * 13 * 13;i += 4) { // rgba 颜色透明度
+                    	if(data[i] == 0 && data[i + 1] == 0 && data[i + 2] == 0) {          //黑色位置不能移动
+                        	canMove = 0;    //0矩形不能移动
+                        	break;
+                    	}else if(data[i] == 0 && data[i + 1] == 255 && data[i + 2] == 0) { //绿色（RGB 0 255 0）位置到达终点
+                        	canMove = 2;    //2达到终点
+                        	break;
+                    	}
+                	}
+			}else{
+				canMove = 0;
+			}
+			return canMove;
+		}
+		
+		// 倒计时函数 秒
+		function drawTime(sec){
+			timer = setInterval(function(){
+				ctx.clearRect(0,mazeHeight - 20,mc.width,20);
+				if(sec == 0){
+					clearInterval(timer);
+					ctx.clearRect(0,0,550,555); // 清除画布
+					window.removeEventListener('keydown',drawMoveRect,true);
+					ctx.font = '40px Arial';
+                    	ctx.fillStyle = 'red';
+                    	ctx.textAlign = 'center';
+                    	ctx.textBaseline = 'middle';
+                    	ctx.fillText('Game Over',mc.width / 2,mc.height / 2);
+                    	return;
+
+				}
+				
+				// 倒计时 时间颜色变化
+				ctx.font = '24px Arial';
+                	if (sec <= 10 && sec > 5) {
+                    	ctx.fillStyle = 'orange';
+                	} else if (sec <= 5) {
+                   	ctx.fillStyle = 'red';
+                	} else {
+                    	ctx.fillStyle = 'green';
+                	}
+                	ctx.textAlign = 'center';
+                	ctx.textBaseline = 'middle';
+                	// 分显示
+                	var minutes = Math.floor(sec / 60);
+                	// 秒显示
+                	var secS = (sec - minutes * 60).toString(); 	// 转化为字符串
+                	// 判断时间秒数是否小于10,是前加0
+                	if(secS < 10) {
+                    	secS = '0' + secS;    //在秒数前加 0 
+                	}
+                	ctx.fillText(minutes.toString() + ':' + secS,mc.width / 2,mazeHeight - 10);
+                	sec--;
+
+			},1000);
+		}
+//		drawTime(300);
+
+		// 绘制游戏开始文字
+		ctx.font = '40px Arial';
+		ctx.fillStyle = 'orangered';
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		ctx.fillText('点击canvas开始游戏!',mc.width / 2,mc.height / 2);
+		
+		// 点击canvas  开始游戏或重新开始游戏
+		mc.onclick = function(){
+			drawMazeAndRect(342,20); // 矩形起始位置坐标
+			window.addEventListener('keydown',drawMoveRect,true); // 监听键盘事件 第三个参数就决定了是先捕获还是先冒泡，如果是true就是捕获，反之则是冒泡
+			clearInterval(timer); // 清除计时器
+			drawTime(600); // 倒计时  秒
+		}
+		
+	</script>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
