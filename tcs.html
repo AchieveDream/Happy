@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh">
+	<head>
+		<meta charset="UTF-8">
+		<title>贪吃蛇</title>
+		<style>
+			*{
+				padding: 0;
+				margin: 0;
+			}
+			body{
+				text-align: center;
+			}
+			.score{
+				margin-top: 60px;
+				font-size: 30px;
+			}
+			.score span{
+				color: purple;
+			}
+			#wrap{
+				margin: 50px auto;
+				
+			}
+			#wrap .off{
+				width: 30px;
+				height: 30px;
+				border: 1px solid red;
+				background: black;
+				display: inline-block;
+				font-size: 0px;
+			}
+			#wrap .on{
+				background: green;
+			}
+			#wrap .hong{
+				background: cyan;
+			}
+			#wrap .egg {
+		        background: yellow;
+		        border-radius: 50%;
+		    }
+		    #btn,#btn1{
+		    		width: 200px;
+		    		height: 50px;
+		    		font-size: 20px;
+		    		background: orange;
+		    		outline: none;
+		    }
+		</style>
+	</head>
+	<body>
+		<div class="score">得分: <span>0</span></div>
+		<div id="wrap">
+			
+		</div>
+		<button id="btn">游戏开始</button>
+		<button id="btn1">重新开始</button>
+	</body>
+	<script src="jquery-3.2.1.min.js"></script>
+	<script type="text/javascript">
+		var rowNum = 15; // 行
+		var colNum = 15; // 列
+		var itemWidth = 30;
+		var itemHeight = 30;
+		var arrArr = []; // 二维
+		function mapFn(){
+			$('#wrap').css('width',(itemWidth + 2) * colNum + 'px');
+			for(var i = 0;i < colNum;i++){
+				var rowArr = []; //行 一维
+				var rowDiv = $('<div></div>');
+				rowDiv.css('font-size','0px');
+				$('#wrap').append(rowDiv);
+				for(var j = 0;j < rowNum;j++){
+					var newDiv = $('<div></div>');
+					newDiv.attr('class','off');
+					rowDiv.append(newDiv);
+					rowArr.push(newDiv);
+				}
+				arrArr.push(rowArr);
+			}
+			console.log(arrArr);
+		}
+		mapFn();
+		
+		var snake = []; // 蛇
+		function createSnake(length){
+			for(var i = 0;i < length; i++){
+				arrArr[0][i].attr('class','off on');//蛇样式
+//				arrArr[0][2].attr('class','off on hong');//蛇样式
+				snake.push(arrArr[0][i]);
+			}
+		}
+		createSnake(3);
+		
+		//蛇动作
+		var x = 2, y = 0;// 蛇头位置
+		var shift = 'right'; // 蛇向右移动
+		var eggX = 0, eggY = 0;// 蛋位置
+		var scoreS = 0;
+		
+		function moves(){
+			// 方向键的键码为：左：37、上：38、右：39、下：40
+			document.onkeydown = function(event){
+				if(shift == 'right' && event.keyCode == 37) {
+		        		return;
+		        }
+		        if(shift == 'left' && event.keyCode == 39) {
+		        		return;
+		        }
+		        if(shift == 'up' && event.keyCode == 40) {
+		        		return;
+		        }
+		        if(shift == 'down' && event.keyCode == 38) {
+		        		return;
+		        }
+				switch(event.keyCode){
+					case 37:
+				        shift = 'left';
+				        break;
+			        case 38:
+				        shift = 'up';
+				        break;
+			        case 39:
+				        shift = 'right';
+				        break;
+			        case 40:
+				        shift = 'down';
+				        break;
+			        default:
+				}
+			}
+		}
+		moves();
+		
+	    function snakeMove() {
+		    // 通过定时器每隔500ms让蛇根据给定的方向移动
+		    var timer = setInterval(function () {
+			
+		        switch(shift) {
+		          case 'left':
+		            x--;
+		            break;
+		          case 'right':
+		            x++;
+		            break;
+		          case 'up':
+		            y--;
+		            break;
+		          case 'down':
+		            y++;
+		            break;
+		          default:
+	        		}
+			    // 边界检测，防止蛇超出范围
+		        if(x < 0 || y < 0 || x >= colNum || y >= rowNum || arrArr[y][x].hasClass('off on')) {
+		        		alert('Game Over!!!'); // game over
+		        		clearInterval(timer);// 停止计时器，让蛇停止移动
+					// 停止键盘监听
+					document.onkeydown = null;
+					return;
+		        }
+        
+        
+	        // 没有蛋   有蛋
+	        if (eggX == x && eggY == y) {
+		        // 下一个移动位置是蛋，蛇需要吃蛋，增长，并产生新蛋
+		        arrArr[y][x].attr('class','off on');
+		        snake.push(arrArr[y][x]);
+		        scoreS += 1;
+		        $('.score span').text(scoreS);
+	          	createEgg(); // 新蛋
+	        } else {
+		        // 先将蛇尾从snake数组中删除，并还原样式
+		        snake[0].attr('class','off');
+		        // shift() 方法用于把数组的第一个元素从其中删除,并返回第一个元素的值。
+		        snake.shift();
+		        arrArr[y][x].attr('class','off on');
+		        snake.push(arrArr[y][x]);
+	        }
+
+      	},500);
+
+    }
+	    
+	// 随机生成蛋的函数
+    function random(min, max) {
+        return parseInt(Math.random() * (max - min) + min);
+    }
+    function createEgg() {
+    		// 蛋的坐标
+        eggX = random(0, colNum - 1);
+        eggY = random(0, rowNum - 1);
+        //判断蛋位置是否在蛇身上
+        if (arrArr[eggY][eggX].hasClass('off on')) {
+        		// 重新随机生成蛋
+        		createEgg();
+        } else {
+        		arrArr[eggY][eggX].attr('class','off egg');
+        }
+    }
+    createEgg();
+    
+    $('#btn').click(function(){
+    		snakeMove();
+    });
+    $('#btn1').click(function(){
+    		history.go();
+    		
+    });
+ 
+	</script>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
